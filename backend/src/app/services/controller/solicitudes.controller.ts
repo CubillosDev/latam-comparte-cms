@@ -96,7 +96,8 @@ export class SolicitudesController {
 
       solicitud.estado = estado;
       await solicitud.save();
-      res.status(200).json({ ok: true, solicitud });
+      const populated = await solicitud.populate("pais", "nombre codigo");
+      res.status(200).json({ ok: true, solicitud: populated });
     } catch (error) {
       console.error("Error al cambiar estado:", error);
       res.status(500).json({ ok: false, message: "Error interno del servidor" });

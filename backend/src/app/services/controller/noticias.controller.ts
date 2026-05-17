@@ -83,10 +83,13 @@ export class NoticiasController {
         return;
       }
 
-      const { titulo, resumen, contenido, autor, imagen_url, estado } = req.body;
+      const { titulo, resumen, contenido, autor, imagen_url, pais, estado } = req.body;
+      const paisFinal = req.user?.rol !== "superadmin"
+        ? req.user?.pais_asignado
+        : (pais ?? noticia.pais);
       const updated = await NoticiaModel.findByIdAndUpdate(
         req.params.id,
-        { titulo, resumen, contenido, autor, imagen_url, estado },
+        { titulo, resumen, contenido, autor, imagen_url, pais: paisFinal, estado },
         { new: true, runValidators: true }
       ).populate("pais", "nombre codigo");
 
@@ -117,7 +120,8 @@ export class NoticiasController {
 
       noticia.estado = estado;
       await noticia.save();
-      res.status(200).json({ ok: true, noticia });
+      const populated = await noticia.populate("pais", "nombre codigo");
+      res.status(200).json({ ok: true, noticia: populated });
     } catch (error) {
       console.error("Error al cambiar estado:", error);
       res.status(500).json({ ok: false, message: "Error interno del servidor" });

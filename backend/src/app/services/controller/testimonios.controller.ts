@@ -54,8 +54,8 @@ export class TestimoniosController {
   async crear(req: AuthRequest, res: Response): Promise<void> {
     const { nombre, foto_url, testimonio, pais, instagram_url, facebook_url, estado } = req.body;
 
-    if (!nombre || !foto_url || !testimonio || !pais) {
-      res.status(400).json({ ok: false, message: "Campos obligatorios: nombre, foto_url, testimonio, pais" });
+    if (!nombre || !testimonio || !pais) {
+      res.status(400).json({ ok: false, message: "Campos obligatorios: nombre, testimonio, pais" });
       return;
     }
 
@@ -85,10 +85,13 @@ export class TestimoniosController {
         return;
       }
 
-      const { nombre, foto_url, testimonio, instagram_url, facebook_url, estado } = req.body;
+      const { nombre, foto_url, testimonio, pais, instagram_url, facebook_url, estado } = req.body;
+      const paisFinal = req.user?.rol !== "superadmin"
+        ? req.user?.pais_asignado
+        : (pais ?? existing.pais);
       const updated = await TestimonioModel.findByIdAndUpdate(
         req.params.id,
-        { nombre, foto_url, testimonio, instagram_url, facebook_url, estado },
+        { nombre, foto_url, testimonio, pais: paisFinal, instagram_url, facebook_url, estado },
         { new: true, runValidators: true }
       ).populate("pais", "nombre codigo");
 
@@ -119,7 +122,8 @@ export class TestimoniosController {
 
       existing.estado = estado;
       await existing.save();
-      res.status(200).json({ ok: true, testimonio: existing });
+      const populated = await existing.populate("pais", "nombre codigo");
+      res.status(200).json({ ok: true, testimonio: populated });
     } catch (error) {
       console.error("Error al cambiar estado:", error);
       res.status(500).json({ ok: false, message: "Error interno del servidor" });
