@@ -2,6 +2,8 @@ import bodyParser from "body-parser";
 import express, { Express } from "express";
 import { Request, Response } from "express";
 import cors from "cors";
+import path from "path";
+import fs from "fs";
 import { ServerApp } from "../core/server";
 import { dbConnection } from "./database/mongo/connect";
 import { CONFIG } from "../config";
@@ -26,6 +28,9 @@ export class Server implements ServerApp {
   protected setServerComunication(): void {
     this.app.use(bodyParser.json());
     this.app.use(cors());
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+    this.app.use("/uploads", express.static(uploadsDir));
   }
 
   async start() {
