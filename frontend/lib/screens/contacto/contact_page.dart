@@ -527,9 +527,25 @@ class _FormCard extends StatelessWidget {
               ),
               Row(
                 children: [
-                  _FooterIconBtn(icon: Icons.share_outlined),
+                  _FooterIconBtn(
+                    icon: Icons.share_outlined,
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Función no disponible en esta versión'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  _FooterIconBtn(icon: Icons.help_outline_rounded),
+                  _FooterIconBtn(
+                    icon: Icons.help_outline_rounded,
+                    onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Soporte: soporte@latamcomparte.org'),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -754,18 +770,22 @@ class _PhoneCodeDropdown extends StatelessWidget {
 
 class _FooterIconBtn extends StatelessWidget {
   final IconData icon;
-  const _FooterIconBtn({required this.icon});
+  final VoidCallback? onTap;
+  const _FooterIconBtn({required this.icon, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 38,
-      height: 38,
-      decoration: const BoxDecoration(
-        color: AppColors.metricDraftBg,
-        shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: const BoxDecoration(
+          color: AppColors.metricDraftBg,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, color: AppColors.primaryPurple, size: 18),
       ),
-      child: Icon(icon, color: AppColors.primaryPurple, size: 18),
     );
   }
 }
