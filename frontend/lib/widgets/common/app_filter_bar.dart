@@ -1,8 +1,7 @@
 import 'package:app/core/app/app_colors.dart';
 import 'package:flutter/material.dart';
 
-/// Barra de filtros horizontal con chips animados.
-/// Reemplaza _FilterBar en testimonios, noticias y _FilterChips en solicitudes.
+/// Barra de filtros con FilterChip de Material 3.
 class AppFilterBar extends StatelessWidget {
   final List<String> filters;
   final int selectedIndex;
@@ -16,7 +15,7 @@ class AppFilterBar extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     this.trailing,
-    this.padding = const EdgeInsets.fromLTRB(16, 12, 16, 8),
+    this.padding = const EdgeInsets.fromLTRB(16, 10, 16, 6),
   });
 
   @override
@@ -28,46 +27,32 @@ class AppFilterBar extends StatelessWidget {
         children: [
           Expanded(
             child: SizedBox(
-              height: 36,
+              height: 38,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: filters.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
                   final selected = i == selectedIndex;
-                  return GestureDetector(
-                    onTap: () => onSelected(i),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppColors.primaryPurple
-                            : AppColors.metricInactiveBg,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: selected
-                            ? [
-                                BoxShadow(
-                                  color: AppColors.primaryPurple
-                                      .withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                )
-                              ]
-                            : null,
-                      ),
-                      child: Text(
-                        filters[i],
-                        style: TextStyle(
-                          color: selected
-                              ? AppColors.white
-                              : AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                  return FilterChip(
+                    label: Text(filters[i]),
+                    selected: selected,
+                    onSelected: (_) => onSelected(i),
+                    labelStyle: TextStyle(
+                      color:
+                          selected ? AppColors.white : AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
+                    backgroundColor: AppColors.metricInactiveBg,
+                    selectedColor: AppColors.primaryPurple,
+                    checkmarkColor: AppColors.white,
+                    showCheckmark: false,
+                    side: BorderSide.none,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                   );
                 },
               ),

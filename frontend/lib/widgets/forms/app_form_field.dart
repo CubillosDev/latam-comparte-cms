@@ -8,6 +8,7 @@ class AppFormField extends StatelessWidget {
   final String hint;
   final IconData? prefixIcon;
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final int maxLines;
   final TextInputType keyboardType;
   final bool hasError;
@@ -22,6 +23,7 @@ class AppFormField extends StatelessWidget {
     required this.hint,
     this.prefixIcon,
     this.controller,
+    this.focusNode,
     this.maxLines = 1,
     this.keyboardType = TextInputType.text,
     this.hasError = false,
@@ -49,6 +51,7 @@ class AppFormField extends StatelessWidget {
         ],
         TextField(
           controller: controller,
+          focusNode: focusNode,
           keyboardType: keyboardType,
           maxLines: maxLines,
           onChanged: onChanged,

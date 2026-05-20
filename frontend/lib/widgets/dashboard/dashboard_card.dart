@@ -24,18 +24,19 @@ class DashboardCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.inputBorder),
         boxShadow: const [
           BoxShadow(
             color: AppColors.cardShadow,
-            blurRadius: 12,
+            blurRadius: 16,
             offset: Offset(0, 2),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -43,13 +44,29 @@ class DashboardCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle!,
+                          style: const TextStyle(
+                            color: AppColors.textHint,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 ?badge,
@@ -57,29 +74,32 @@ class DashboardCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   GestureDetector(
                     onTap: onAction,
-                    child: Text(
-                      actionLabel!,
-                      style: const TextStyle(
-                        color: AppColors.linkColor,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          actionLabel!,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: AppColors.textHint,
+                          size: 10,
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ],
             ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                subtitle!,
-                style: const TextStyle(
-                  color: AppColors.textHint,
-                  fontSize: 12,
-                ),
-              ),
-            ],
             const SizedBox(height: 14),
+            Container(height: 1, color: AppColors.inputBorder),
+            const SizedBox(height: 16),
             child,
           ],
         ),
