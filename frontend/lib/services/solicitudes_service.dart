@@ -19,9 +19,8 @@ class SolicitudesService {
     return SolicitudModel.fromJson((response.data as Map<String, dynamic>)['solicitud'] as Map<String, dynamic>);
   }
 
-  Future<SolicitudModel> cambiarEstado(String id, String estado) async {
-    final response = await _dio.patch('/api/v1/solicitudes/$id/estado', data: {'estado': estado});
-    return SolicitudModel.fromJson((response.data as Map<String, dynamic>)['solicitud'] as Map<String, dynamic>);
+  Future<void> cambiarEstado(String id, String estado) async {
+    await _dio.patch('/api/v1/solicitudes/$id/estado', data: {'estado': estado});
   }
 
   Future<void> eliminar(String id) async {

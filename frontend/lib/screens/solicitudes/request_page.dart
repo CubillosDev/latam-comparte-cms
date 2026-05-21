@@ -41,6 +41,16 @@ class _RequestPageState extends State<RequestPage> {
     super.dispose();
   }
 
+  void _showNotificationsSheet(BuildContext context, List<SolicitudModel> pending) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _NotificationsSheet(pending: pending),
+    );
+  }
+
   List<SolicitudModel> _filtered(List<SolicitudModel> all) {
     var list = all;
 
@@ -74,8 +84,13 @@ class _RequestPageState extends State<RequestPage> {
 
     return Scaffold(
       backgroundColor: AppColors.formBackground,
-      appBar: _SolicitudesAppBar(pendingCount: provider.solicitudes
-          .where((s) => s.isPendiente).length),
+      appBar: _SolicitudesAppBar(
+        pendingCount: provider.solicitudes.where((s) => s.isPendiente).length,
+        onTapBell: () => _showNotificationsSheet(
+          context,
+          provider.solicitudes.where((s) => s.isPendiente).toList(),
+        ),
+      ),
       body: Column(
         children: [
           Padding(
@@ -146,7 +161,8 @@ class _RequestPageState extends State<RequestPage> {
 
 class _SolicitudesAppBar extends StatelessWidget implements PreferredSizeWidget {
   final int pendingCount;
-  const _SolicitudesAppBar({required this.pendingCount});
+  final VoidCallback? onTapBell;
+  const _SolicitudesAppBar({required this.pendingCount, this.onTapBell});
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -154,35 +170,40 @@ class _SolicitudesAppBar extends StatelessWidget implements PreferredSizeWidget 
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          child: Row(
-            children: [
-              const SizedBox(width: 4),
-              GestureDetector(
-                onTap: () => Scaffold.of(context).openDrawer(),
-                child: const Icon(Icons.menu_rounded,
-                    color: AppColors.white, size: 24),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Solicitudes de contacto',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        border: Border(
+          bottom: BorderSide(color: AppColors.inputBorder, width: 1),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: () => Scaffold.of(context).openDrawer(),
+              child: const Icon(Icons.menu_rounded,
+                  color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 14),
+            const Expanded(
+              child: Text(
+                'Solicitudes',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
                 ),
               ),
-              if (pendingCount > 0)
-                Stack(
+            ),
+            if (pendingCount > 0)
+              GestureDetector(
+                onTap: onTapBell,
+                child: Stack(
                   children: [
                     const Icon(Icons.notifications_outlined,
-                        color: AppColors.white, size: 24),
+                        color: AppColors.primary, size: 24),
                     Positioned(
                       right: 0,
                       top: 0,
@@ -207,9 +228,8 @@ class _SolicitudesAppBar extends StatelessWidget implements PreferredSizeWidget 
                     ),
                   ],
                 ),
-              const SizedBox(width: 4),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );
@@ -612,6 +632,149 @@ class _HighlightText extends StatelessWidget {
       text: TextSpan(children: spans),
       maxLines: maxLines,
       overflow: overflow ?? TextOverflow.clip,
+    );
+  }
+}
+
+// ─── Notifications Bottom Sheet ───────────────────────────────────────────────
+
+class _NotificationsSheet extends StatelessWidget {
+  final List<SolicitudModel> pending;
+  const _NotificationsSheet({required this.pending});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: AppColors.inputBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          Row(
+            children: [
+              const Icon(Icons.notifications_outlined,
+                  color: AppColors.primary, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                'Solicitudes pendientes',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (pending.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.errorContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${pending.length}',
+                    style: const TextStyle(
+                      color: AppColors.errorColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (pending.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(
+                child: Text(
+                  'Sin solicitudes pendientes',
+                  style: TextStyle(color: AppColors.textHint, fontSize: 14),
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: pending.length,
+              separatorBuilder: (_, _) =>
+                  const Divider(height: 1, color: AppColors.inputBorder),
+              itemBuilder: (context, i) {
+                final s = pending[i];
+                return ListTile(
+                  contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                  leading: Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [s.avatarStart, s.avatarEnd],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        s.initials,
+                        style: const TextStyle(
+                          color: AppColors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    s.nombre,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    s.pais.nombre,
+                    style: const TextStyle(
+                        color: AppColors.textHint, fontSize: 12),
+                  ),
+                  trailing: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushNamed(
+                        context,
+                        '/solicitudes/detalle',
+                        arguments: s,
+                      );
+                    },
+                    child: const Text(
+                      'Ver detalle',
+                      style: TextStyle(
+                        color: AppColors.primaryPurple,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
     );
   }
 }

@@ -28,8 +28,20 @@ class SolicitudesProvider extends ChangeNotifier {
 
   Future<bool> cambiarEstado(String id, String nuevoEstado) async {
     try {
-      final actualizada = await _service.cambiarEstado(id, nuevoEstado);
-      _solicitudes = _solicitudes.map((s) => s.id == id ? actualizada : s).toList();
+      await _service.cambiarEstado(id, nuevoEstado);
+      _solicitudes = _solicitudes.map((s) {
+        if (s.id != id) return s;
+        return SolicitudModel(
+          id: s.id,
+          nombre: s.nombre,
+          correo: s.correo,
+          telefono: s.telefono,
+          finalidad: s.finalidad,
+          pais: s.pais,
+          estado: nuevoEstado,
+          fechaCreacion: s.fechaCreacion,
+        );
+      }).toList();
       notifyListeners();
       return true;
     } catch (_) {
