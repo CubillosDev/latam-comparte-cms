@@ -5,6 +5,8 @@ import 'package:app/provider/noticias_provider.dart';
 import 'package:app/provider/paises_provider.dart';
 import 'package:app/provider/solicitudes_provider.dart';
 import 'package:app/provider/testimonios_provider.dart';
+import 'package:app/screens/noticias/formulario_noticias_page.dart';
+import 'package:app/screens/testimonios/formulario_testimonios_page.dart';
 import 'package:app/widgets/common/app_drawer.dart';
 import 'package:app/widgets/common/status_badge.dart';
 import 'package:app/widgets/dashboard/dashboard_bottom_nav.dart';
@@ -36,9 +38,39 @@ class _DashboardAdminPaisPageState extends State<DashboardAdminPaisPage> {
 
   @override
   Widget build(BuildContext context) {
+    final pais = context.watch<AuthProvider>().user?.paisAsignado;
+
     return Scaffold(
       backgroundColor: AppColors.formBackground,
-      appBar: _DashboardAppBar(),
+      appBar: AppBar(
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu_rounded),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
+        ),
+        title: const Text('Mi Panel'),
+        actions: [
+          if (pais != null)
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                border: Border.all(color: AppColors.inputBorder),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                pais.nombre,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
         child: Column(
@@ -59,64 +91,6 @@ class _DashboardAdminPaisPageState extends State<DashboardAdminPaisPage> {
       ),
       drawer: const AppDrawer(),
       bottomNavigationBar: const DashboardBottomNav(currentIndex: 0),
-    );
-  }
-}
-
-// ─── AppBar ───────────────────────────────────────────────────────────────────
-
-class _DashboardAppBar extends StatelessWidget implements PreferredSizeWidget {
-  @override
-  Size get preferredSize => const Size.fromHeight(56);
-
-  @override
-  Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().user;
-    final pais = user?.paisAsignado;
-
-    return Container(
-      decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => Scaffold.of(context).openDrawer(),
-                child: const Icon(Icons.menu_rounded, color: AppColors.white, size: 24),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Mi Panel',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              if (pais != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    pais.nombre,
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
@@ -169,15 +143,17 @@ class _MetricsSection extends StatelessWidget {
           ? Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.metricDraftBg,
+                color: AppColors.white,
+                border: Border.all(color: AppColors.inputBorder),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 codigo,
                 style: const TextStyle(
-                  color: AppColors.metricDraftText,
+                  color: AppColors.textSecondary,
                   fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
                 ),
               ),
             )
@@ -233,12 +209,19 @@ class _SolicitudesSection extends StatelessWidget {
           : Column(
               children: List.generate(items.length, (i) {
                 final s = items[i];
-                return ListItemRow(
-                  title: s.nombre,
-                  subtitle: s.pais.nombre,
-                  leading: AvatarLeading(initials: s.initials),
-                  trailing: const StatusBadge(status: BadgeStatus.pending),
-                  showDivider: i < items.length - 1,
+                return GestureDetector(
+                  onTap: () => Navigator.pushNamed(
+                    context,
+                    '/solicitudes/detalle',
+                    arguments: s,
+                  ),
+                  child: ListItemRow(
+                    title: s.nombre,
+                    subtitle: s.pais.nombre,
+                    leading: AvatarLeading(initials: s.initials),
+                    trailing: const StatusBadge(status: BadgeStatus.pending),
+                    showDivider: i < items.length - 1,
+                  ),
                 );
               }),
             ),
@@ -256,16 +239,26 @@ class _TestimoniosSection extends StatelessWidget {
     final items = context.watch<TestimoniosProvider>().testimonios.take(3).toList();
     return DashboardCard(
       title: 'Mis testimonios',
+      actionLabel: 'Ver todos',
+      onAction: () => Navigator.pushNamed(context, '/contenido'),
       child: Column(
         children: [
           ...List.generate(items.length, (i) {
             final t = items[i];
-            return ListItemRow(
-              title: t.nombre,
-              subtitle: t.pais.nombre,
-              leading: AvatarLeading(initials: t.initials, color: t.avatarColor),
-              trailing: StatusBadge(status: t.status),
-              showDivider: i < items.length - 1,
+            return GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FormularioTestimoniosPage(testimonio: t),
+                ),
+              ),
+              child: ListItemRow(
+                title: t.nombre,
+                subtitle: t.pais.nombre,
+                leading: AvatarLeading(initials: t.initials, color: t.avatarColor),
+                trailing: StatusBadge(status: t.status),
+                showDivider: i < items.length - 1,
+              ),
             );
           }),
           const SizedBox(height: 12),
@@ -290,16 +283,26 @@ class _NoticiasSection extends StatelessWidget {
     final items = context.watch<NoticiasProvider>().noticias.take(3).toList();
     return DashboardCard(
       title: 'Mis noticias',
+      actionLabel: 'Ver todas',
+      onAction: () => Navigator.pushNamed(context, '/noticias'),
       child: Column(
         children: [
           ...List.generate(items.length, (i) {
             final n = items[i];
-            return ListItemRow(
-              title: n.titulo,
-              subtitle: n.pais.nombre,
-              leading: ImageLeading(color: n.thumbnailColor, icon: n.thumbnailIcon),
-              trailing: StatusBadge(status: n.status),
-              showDivider: i < items.length - 1,
+            return GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FormularioNoticiasPage(noticia: n),
+                ),
+              ),
+              child: ListItemRow(
+                title: n.titulo,
+                subtitle: n.pais.nombre,
+                leading: ImageLeading(color: n.thumbnailColor, icon: n.thumbnailIcon),
+                trailing: StatusBadge(status: n.status),
+                showDivider: i < items.length - 1,
+              ),
             );
           }),
           const SizedBox(height: 12),

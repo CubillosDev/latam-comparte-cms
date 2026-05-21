@@ -44,7 +44,7 @@ class _AllPortalsPageState extends State<AllPortalsPage> {
                       padding: const EdgeInsets.only(bottom: 16),
                       child: PortalCard(
                         portal: portales[i],
-                        onVerContenido: () {},
+                        onVerContenido: () => Navigator.pushNamed(context, '/noticias'),
                       ),
                     ),
                   ),
@@ -69,40 +69,33 @@ class _PortalesAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back_rounded,
-                    color: AppColors.white, size: 22),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const Expanded(
-                child: Text(
-                  'Portales activos',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        border: Border(
+          bottom: BorderSide(color: AppColors.inputBorder, width: 1),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_rounded,
+                  color: AppColors.primary, size: 22),
+              onPressed: () => Navigator.pop(context),
+            ),
+            const Expanded(
+              child: Text(
+                'Portales activos',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.settings_outlined,
-                    color: AppColors.white, size: 22),
-                onPressed: () {},
-              ),
-              IconButton(
-                icon: const Icon(Icons.language_rounded,
-                    color: AppColors.white, size: 22),
-                onPressed: () {},
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

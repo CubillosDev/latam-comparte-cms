@@ -32,7 +32,30 @@ class _DashboardSuperAdminPageState extends State<DashboardSuperAdminPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.formBackground,
-      appBar: _SuperAdminAppBar(),
+      appBar: AppBar(
+        leading: Builder(
+          builder: (ctx) => IconButton(
+            icon: const Icon(Icons.menu_rounded),
+            onPressed: () => Scaffold.of(ctx).openDrawer(),
+          ),
+        ),
+        title: const Text('Panel Global'),
+        actions: [
+          _GlobalBadge(),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Sin notificaciones nuevas'),
+                behavior: SnackBarBehavior.floating,
+                duration: Duration(seconds: 2),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
         child: Column(
@@ -57,85 +80,27 @@ class _DashboardSuperAdminPageState extends State<DashboardSuperAdminPage> {
   }
 }
 
-// ─── AppBar ───────────────────────────────────────────────────────────────────
-
-class _SuperAdminAppBar extends StatelessWidget implements PreferredSizeWidget {
-  @override
-  Size get preferredSize => const Size.fromHeight(56);
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => Scaffold.of(context).openDrawer(),
-                child: const Icon(Icons.menu_rounded, color: AppColors.white, size: 24),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Panel Global',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              _GlobalBadge(),
-              const SizedBox(width: 10),
-              Stack(
-                children: [
-                  const Icon(Icons.notifications_outlined,
-                      color: AppColors.white, size: 24),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: AppColors.statusPendingText,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _GlobalBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: AppColors.white.withValues(alpha: 0.2),
+        color: AppColors.white,
+        border: Border.all(color: AppColors.inputBorder),
         borderRadius: BorderRadius.circular(20),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.public_rounded, color: AppColors.white, size: 13),
+          Icon(Icons.public_rounded, color: AppColors.textSecondary, size: 12),
           SizedBox(width: 5),
           Text(
             'Global',
             style: TextStyle(
-              color: AppColors.white,
+              color: AppColors.textSecondary,
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -255,7 +220,7 @@ class _PaisesActivosSection extends StatelessWidget {
                 return ListItemRow(
                   title: m.pais.nombre,
                   subtitle: '${m.solicitudesPendientes} solicitudes pendientes',
-                  leading: _FlagAvatar(flag: m.pais.flag),
+                  leading: _FlagAvatar(logoAsset: m.pais.logoAsset, flag: m.pais.flag),
                   trailing: const StatusBadge(status: BadgeStatus.published),
                   showDivider: i < metricas.length - 1,
                 );
@@ -266,20 +231,29 @@ class _PaisesActivosSection extends StatelessWidget {
 }
 
 class _FlagAvatar extends StatelessWidget {
+  final String logoAsset;
   final String flag;
-  const _FlagAvatar({required this.flag});
+  const _FlagAvatar({required this.logoAsset, required this.flag});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 44,
       height: 44,
-      decoration: const BoxDecoration(
-        color: AppColors.metricDraftBg,
-        shape: BoxShape.circle,
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.inputBorder),
       ),
-      child: Center(
-        child: Text(flag, style: const TextStyle(fontSize: 22)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(11),
+        child: Image.asset(
+          logoAsset,
+          fit: BoxFit.contain,
+          errorBuilder: (ctx, e, st) => Center(
+            child: Text(flag, style: const TextStyle(fontSize: 20)),
+          ),
+        ),
       ),
     );
   }
