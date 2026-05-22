@@ -36,6 +36,9 @@ class _AppCountryDropdownState extends State<AppCountryDropdown> {
   Widget build(BuildContext context) {
     final paises = context.watch<PaisesProvider>().paises;
 
+    final matches = paises.where((p) => p.id == widget.value?.id);
+    final resolvedValue = matches.isEmpty ? null : matches.first;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
@@ -44,7 +47,7 @@ class _AppCountryDropdownState extends State<AppCountryDropdown> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<PaisModel>(
-          value: widget.value,
+          value: resolvedValue,
           isExpanded: true,
           hint: Text(
             widget.hint,

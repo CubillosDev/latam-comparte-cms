@@ -37,6 +37,17 @@ class TestimoniosProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> actualizar(String id, Map<String, dynamic> data) async {
+    try {
+      final actualizado = await _service.actualizar(id, data);
+      _testimonios = _testimonios.map((t) => t.id == id ? actualizado : t).toList();
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> cambiarEstado(String id, String nuevoEstado) async {
     try {
       final actualizado = await _service.cambiarEstado(id, nuevoEstado);

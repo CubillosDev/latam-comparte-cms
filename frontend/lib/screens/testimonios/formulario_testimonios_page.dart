@@ -1,5 +1,6 @@
 import 'package:app/core/app/app_colors.dart';
 import 'package:app/models/pais_model.dart';
+import 'package:app/models/testimonio_model.dart';
 import 'package:app/provider/auth_provider.dart';
 import 'package:app/provider/testimonios_provider.dart';
 import 'package:app/widgets/buttons/app_primary_button.dart';
@@ -8,11 +9,13 @@ import 'package:app/widgets/forms/app_country_dropdown.dart';
 import 'package:app/widgets/forms/app_form_card.dart';
 import 'package:app/widgets/forms/app_form_field.dart';
 import 'package:app/widgets/forms/app_segmented_selector.dart';
+import 'package:app/widgets/forms/image_picker_field.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class FormularioTestimoniosPage extends StatefulWidget {
-  const FormularioTestimoniosPage({super.key});
+  final TestimonioModel? testimonio; // null = crear, non-null = editar
+  const FormularioTestimoniosPage({super.key, this.testimonio});
 
   @override
   State<FormularioTestimoniosPage> createState() =>
@@ -36,11 +39,27 @@ class _FormularioTestimoniosPageState
   static const int _maxChars = 500;
   static const _statusLabels = ['Borrador', 'Publicado', 'Despublicado'];
 
+  bool get _isEditing => widget.testimonio != null;
+
   @override
   void initState() {
     super.initState();
     _testimonioController.addListener(
         () => setState(() => _charCount = _testimonioController.text.length));
+    if (_isEditing) {
+      final t = widget.testimonio!;
+      _imageUrlController.text = t.fotoUrl;
+      _nameController.text = t.nombre;
+      _testimonioController.text = t.testimonio;
+      _instagramController.text = t.instagramUrl ?? '';
+      _facebookController.text = t.facebookUrl ?? '';
+      _selectedCountry = t.pais;
+      _selectedStatus = switch (t.estado) {
+        'publicado' => 1,
+        'despublicado' => 2,
+        _ => 0,
+      };
+    }
   }
 
   @override
@@ -69,7 +88,7 @@ class _FormularioTestimoniosPageState
     }
 
     final user = context.read<AuthProvider>().user;
-    final paisId = _selectedCountry?.id ?? user?.paisAsignado?.id ?? '';
+    final paisId = _selectedCountry?.id ?? widget.testimonio?.pais.id ?? user?.paisAsignado?.id ?? '';
 
     if (paisId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -83,7 +102,8 @@ class _FormularioTestimoniosPageState
     }
 
     setState(() => _saving = true);
-    final ok = await context.read<TestimoniosProvider>().crear({
+
+    final data = {
       'nombre': nombre,
       'testimonio': testimonio,
       'pais': paisId,
@@ -91,10 +111,19 @@ class _FormularioTestimoniosPageState
       if (_imageUrlController.text.isNotEmpty)
         'foto_url': _imageUrlController.text.trim(),
       if (_instagramController.text.isNotEmpty)
-        'instagram': _instagramController.text.trim(),
+        'instagram_url': _instagramController.text.trim(),
       if (_facebookController.text.isNotEmpty)
-        'facebook': _facebookController.text.trim(),
-    });
+        'facebook_url': _facebookController.text.trim(),
+    };
+
+    final provider = context.read<TestimoniosProvider>();
+    final bool ok;
+    if (_isEditing) {
+      ok = await provider.actualizar(widget.testimonio!.id, data);
+    } else {
+      ok = await provider.crear(data);
+    }
+
     if (!mounted) return;
     setState(() => _saving = false);
 
@@ -102,8 +131,8 @@ class _FormularioTestimoniosPageState
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al guardar el testimonio'),
+        SnackBar(
+          content: Text(_isEditing ? 'Error al actualizar el testimonio' : 'Error al guardar el testimonio'),
           backgroundColor: AppColors.errorColor,
           behavior: SnackBarBehavior.floating,
         ),
@@ -118,12 +147,21 @@ class _FormularioTestimoniosPageState
 
     return Scaffold(
       backgroundColor: AppColors.formBackground,
-      appBar: _FormAppBar(saving: _saving, onSave: _onSave),
+      appBar: _FormAppBar(
+        saving: _saving,
+        onSave: _onSave,
+        title: _isEditing ? 'Editar testimonio' : 'Nuevo testimonio',
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
         child: Column(
           children: [
-            _PhotoCard(controller: _imageUrlController),
+            AppFormCard(
+              child: ImagePickerField(
+                controller: _imageUrlController,
+                shape: ImagePickerShape.circle,
+              ),
+            ),
             const SizedBox(height: 14),
             AppFormCard(
               child: Column(
@@ -132,7 +170,7 @@ class _FormularioTestimoniosPageState
                   const Text(
                     'Información del Testigo',
                     style: TextStyle(
-                      color: AppColors.primaryPurple,
+                      color: AppColors.primary,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -168,9 +206,10 @@ class _FormularioTestimoniosPageState
                           const Icon(Icons.flag_outlined,
                               color: AppColors.textHint, size: 18),
                           const SizedBox(width: 10),
-                          Text(user?.paisAsignado?.nombre ?? '',
-                              style: const TextStyle(
-                                  color: AppColors.textSecondary, fontSize: 14)),
+                          Text(
+                            user?.paisAsignado?.nombre ?? widget.testimonio?.pais.nombre ?? '',
+                            style: const TextStyle(
+                                color: AppColors.textSecondary, fontSize: 14)),
                         ],
                       ),
                     ),
@@ -212,7 +251,7 @@ class _FormularioTestimoniosPageState
                   const Text(
                     'Estado de publicación',
                     style: TextStyle(
-                      color: AppColors.primaryPurple,
+                      color: AppColors.primary,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                     ),
@@ -228,7 +267,9 @@ class _FormularioTestimoniosPageState
             ),
             const SizedBox(height: 24),
             AppPrimaryButton(
-              label: _saving ? 'Guardando...' : 'Guardar testimonio',
+              label: _saving
+                  ? 'Guardando...'
+                  : (_isEditing ? 'Guardar cambios' : 'Guardar testimonio'),
               onPressed: _saving ? null : _onSave,
             ),
             const SizedBox(height: 8),
@@ -245,7 +286,8 @@ class _FormularioTestimoniosPageState
 class _FormAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool saving;
   final VoidCallback onSave;
-  const _FormAppBar({required this.saving, required this.onSave});
+  final String title;
+  const _FormAppBar({required this.saving, required this.onSave, required this.title});
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -253,109 +295,61 @@ class _FormAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back_rounded,
-                    color: AppColors.white, size: 22),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const Expanded(
-                child: Text(
-                  'Nuevo testimonio',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: saving ? null : onSave,
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.white.withValues(alpha: 0.2),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                child: saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            color: AppColors.white, strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Guardar',
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        border: Border(
+          bottom: BorderSide(color: AppColors.inputBorder, width: 1),
         ),
       ),
-    );
-  }
-}
-
-// ─── Photo Card ───────────────────────────────────────────────────────────────
-
-class _PhotoCard extends StatelessWidget {
-  final TextEditingController controller;
-  const _PhotoCard({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return AppFormCard(
-      child: Column(
-        children: [
-          Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.primaryPurple,
-                width: 2,
-                strokeAlign: BorderSide.strokeAlignInside,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_rounded,
+                  color: AppColors.primary, size: 22),
+              onPressed: () => Navigator.pop(context),
+            ),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
               ),
             ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add_a_photo_outlined,
-                    color: AppColors.primaryPurple, size: 28),
-                SizedBox(height: 4),
-                Text(
-                  'Toca para\nagregar foto',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
+            TextButton(
+              onPressed: saving ? null : onSave,
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.metricDraftBg,
+                foregroundColor: AppColors.primaryPurple,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: saving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          color: AppColors.primaryPurple, strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Guardar',
+                      style: TextStyle(
+                        color: AppColors.primaryPurple,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
-          ),
-          const SizedBox(height: 16),
-          AppFormField(
-            label: 'URL de la imagen',
-            hint: 'https://ejemplo.com/foto.jpg',
-            prefixIcon: Icons.link_rounded,
-            controller: controller,
-            keyboardType: TextInputType.url,
-          ),
-        ],
+            const SizedBox(width: 8),
+          ],
+        ),
       ),
     );
   }
@@ -399,13 +393,13 @@ class _SocialCard extends StatelessWidget {
               child: Row(
                 children: [
                   const Icon(Icons.share_outlined,
-                      color: AppColors.primaryPurple, size: 20),
+                      color: AppColors.primary, size: 20),
                   const SizedBox(width: 10),
                   const Expanded(
                     child: Text(
                       'Redes Sociales',
                       style: TextStyle(
-                        color: AppColors.primaryPurple,
+                        color: AppColors.primary,
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
