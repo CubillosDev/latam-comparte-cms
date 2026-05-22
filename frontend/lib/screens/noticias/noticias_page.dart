@@ -3,6 +3,7 @@ import 'package:app/core/enums.dart';
 import 'package:app/models/noticia_model.dart';
 import 'package:app/provider/auth_provider.dart';
 import 'package:app/provider/noticias_provider.dart';
+import 'package:app/screens/noticias/formulario_noticias_page.dart';
 import 'package:app/widgets/common/app_drawer.dart';
 import 'package:app/widgets/common/app_filter_bar.dart';
 import 'package:app/widgets/common/app_gradient_fab.dart';
@@ -10,6 +11,8 @@ import 'package:app/widgets/common/status_badge.dart';
 import 'package:app/widgets/dashboard/dashboard_bottom_nav.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+enum _SortOption { newest, oldest, az }
 
 class NoticiasPage extends StatefulWidget {
   const NoticiasPage({super.key});
@@ -20,6 +23,10 @@ class NoticiasPage extends StatefulWidget {
 
 class _NoticiasPageState extends State<NoticiasPage> {
   int _selectedFilter = 0;
+  bool _showSearch = false;
+  String _searchQuery = '';
+  _SortOption _sortOption = _SortOption.newest;
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -29,10 +36,57 @@ class _NoticiasPageState extends State<NoticiasPage> {
     });
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   List<NoticiaModel> _filtered(List<NoticiaModel> all) {
-    if (_selectedFilter == 0) return all;
-    final estado = ['', 'publicado', 'borrador'][_selectedFilter];
-    return all.where((n) => n.estado == estado).toList();
+    var list = all;
+
+    if (_selectedFilter != 0) {
+      final estado = ['', 'publicado', 'borrador', 'despublicado'][_selectedFilter];
+      list = list.where((n) => n.estado == estado).toList();
+    }
+
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list
+          .where((n) =>
+              n.titulo.toLowerCase().contains(q) ||
+              n.autor.toLowerCase().contains(q) ||
+              n.resumen.toLowerCase().contains(q))
+          .toList();
+    }
+
+    list = List.of(list);
+    switch (_sortOption) {
+      case _SortOption.newest:
+        list.sort((a, b) => b.fechaCreacion.compareTo(a.fechaCreacion));
+      case _SortOption.oldest:
+        list.sort((a, b) => a.fechaCreacion.compareTo(b.fechaCreacion));
+      case _SortOption.az:
+        list.sort((a, b) => a.titulo.compareTo(b.titulo));
+    }
+
+    return list;
+  }
+
+  void _showSortSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => _SortSheet(
+        current: _sortOption,
+        onSelected: (opt) {
+          setState(() => _sortOption = opt);
+          Navigator.pop(ctx);
+        },
+      ),
+    );
   }
 
   @override
@@ -43,34 +97,79 @@ class _NoticiasPageState extends State<NoticiasPage> {
 
     return Scaffold(
       backgroundColor: AppColors.formBackground,
-      appBar: _NoticiasAppBar(user: user),
+      appBar: _NoticiasAppBar(
+        user: user,
+        showSearch: _showSearch,
+        onToggleSearch: () {
+          setState(() {
+            _showSearch = !_showSearch;
+            if (!_showSearch) {
+              _searchQuery = '';
+              _searchController.clear();
+            }
+          });
+        },
+      ),
       drawer: const AppDrawer(),
       body: Column(
         children: [
+          if (_showSearch)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _SearchBar(
+                controller: _searchController,
+                onChanged: (q) => setState(() => _searchQuery = q),
+              ),
+            ),
           AppFilterBar(
-            filters: const ['Todas', 'Publicadas', 'Borradores'],
+            filters: const ['Todas', 'Publicadas', 'Borradores', 'Despublicadas'],
             selectedIndex: _selectedFilter,
             onSelected: (i) => setState(() => _selectedFilter = i),
-            trailing: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.metricInactiveBg,
-                borderRadius: BorderRadius.circular(10),
+            trailing: GestureDetector(
+              onTap: _showSortSheet,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: _sortOption != _SortOption.newest
+                      ? AppColors.metricDraftBg
+                      : AppColors.metricInactiveBg,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.sort_rounded,
+                  color: _sortOption != _SortOption.newest
+                      ? AppColors.primaryPurple
+                      : AppColors.textSecondary,
+                  size: 20,
+                ),
               ),
-              child: const Icon(Icons.sort_rounded,
-                  color: AppColors.textSecondary, size: 20),
             ),
           ),
           Expanded(
             child: provider.state == NoticiasLoadState.loading
                 ? const Center(child: CircularProgressIndicator())
                 : items.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Sin noticias en esta categoría',
-                          style: TextStyle(
-                              color: AppColors.textHint, fontSize: 14),
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _searchQuery.isNotEmpty
+                                  ? Icons.search_off_rounded
+                                  : Icons.newspaper_outlined,
+                              color: AppColors.textHint,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              _searchQuery.isNotEmpty
+                                  ? 'Sin resultados para "$_searchQuery"'
+                                  : 'Sin noticias en esta categoría',
+                              style: const TextStyle(
+                                  color: AppColors.textHint, fontSize: 14),
+                            ),
+                          ],
                         ),
                       )
                     : ListView.separated(
@@ -90,6 +189,13 @@ class _NoticiasPageState extends State<NoticiasPage> {
                                   .read<NoticiasProvider>()
                                   .cambiarEstado(noticia.id, nuevoEstado);
                             },
+                            onEdit: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    FormularioNoticiasPage(noticia: noticia),
+                              ),
+                            ),
                           );
                         },
                       ),
@@ -104,11 +210,116 @@ class _NoticiasPageState extends State<NoticiasPage> {
   }
 }
 
+// ─── Sort Sheet ───────────────────────────────────────────────────────────────
+
+class _SortSheet extends StatelessWidget {
+  final _SortOption current;
+  final ValueChanged<_SortOption> onSelected;
+
+  const _SortSheet({required this.current, required this.onSelected});
+
+  @override
+  Widget build(BuildContext context) {
+    final options = [
+      (_SortOption.newest, Icons.arrow_downward_rounded, 'Más recientes primero'),
+      (_SortOption.oldest, Icons.arrow_upward_rounded, 'Más antiguas primero'),
+      (_SortOption.az, Icons.sort_by_alpha_rounded, 'Alfabético (A → Z)'),
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.inputBorder,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Ordenar por',
+            style: TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...options.map((opt) {
+            final (val, icon, label) = opt;
+            final isSelected = val == current;
+            return GestureDetector(
+              onTap: () => onSelected(val),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.metricDraftBg
+                      : AppColors.formBackground,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.primaryPurple.withValues(alpha: 0.3)
+                        : Colors.transparent,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(icon,
+                        color: isSelected
+                            ? AppColors.primaryPurple
+                            : AppColors.textSecondary,
+                        size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: isSelected
+                              ? AppColors.primaryPurple
+                              : AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                    if (isSelected)
+                      const Icon(Icons.check_rounded,
+                          color: AppColors.primaryPurple, size: 18),
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── AppBar ───────────────────────────────────────────────────────────────────
 
 class _NoticiasAppBar extends StatelessWidget implements PreferredSizeWidget {
   final dynamic user;
-  const _NoticiasAppBar({this.user});
+  final bool showSearch;
+  final VoidCallback onToggleSearch;
+
+  const _NoticiasAppBar({
+    this.user,
+    required this.showSearch,
+    required this.onToggleSearch,
+  });
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -120,55 +331,115 @@ class _NoticiasAppBar extends StatelessWidget implements PreferredSizeWidget {
         : 'Global';
 
     return Container(
-      decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          child: Row(
-            children: [
-              GestureDetector(
-                onTap: () => Scaffold.of(context).openDrawer(),
-                child: const Icon(Icons.menu_rounded,
-                    color: AppColors.white, size: 24),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        border: Border(
+          bottom: BorderSide(color: AppColors.inputBorder, width: 1),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          children: [
+            Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.menu_rounded,
+                    color: AppColors.primary, size: 24),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
               ),
-              const SizedBox(width: 10),
-              const Text(
-                'Noticias',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 17,
+            ),
+            const Text(
+              'Noticias',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.3,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.metricDraftBg,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                pais.toUpperCase(),
+                style: const TextStyle(
+                  color: AppColors.primaryPurple,
+                  fontSize: 9,
                   fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                      color: AppColors.white.withValues(alpha: 0.1)),
-                ),
-                child: Text(
-                  pais.toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5,
-                  ),
-                ),
+            ),
+            const Spacer(),
+            IconButton(
+              icon: Icon(
+                showSearch ? Icons.search_off_rounded : Icons.search_rounded,
+                color: AppColors.primary,
+                size: 22,
               ),
-              const Spacer(),
-              IconButton(
-                icon: const Icon(Icons.search_rounded,
-                    color: AppColors.white, size: 22),
-                onPressed: () {},
-              ),
-            ],
+              onPressed: onToggleSearch,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Search Bar ───────────────────────────────────────────────────────────────
+
+class _SearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  const _SearchBar({required this.controller, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(
+              color: AppColors.cardShadow, blurRadius: 8, offset: Offset(0, 2)),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        autofocus: true,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          hintText: 'Buscar por título, autor, resumen...',
+          hintStyle:
+              const TextStyle(color: AppColors.textHint, fontSize: 13),
+          prefixIcon: const Icon(Icons.search_rounded,
+              color: AppColors.textHint, size: 20),
+          suffixIcon: ValueListenableBuilder(
+            valueListenable: controller,
+            builder: (context, value, child) => value.text.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.close_rounded,
+                        color: AppColors.textHint, size: 18),
+                    onPressed: () {
+                      controller.clear();
+                      onChanged('');
+                    },
+                  )
+                : const SizedBox.shrink(),
           ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: AppColors.white,
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         ),
       ),
     );
@@ -181,11 +452,13 @@ class _NoticiaCard extends StatelessWidget {
   final NoticiaModel noticia;
   final bool canChangeState;
   final ValueChanged<bool> onToggle;
+  final VoidCallback onEdit;
 
   const _NoticiaCard({
     required this.noticia,
     required this.canChangeState,
     required this.onToggle,
+    required this.onEdit,
   });
 
   @override
@@ -194,11 +467,13 @@ class _NoticiaCard extends StatelessWidget {
         ? _ImageCard(
             noticia: noticia,
             canChangeState: canChangeState,
-            onToggle: onToggle)
+            onToggle: onToggle,
+            onEdit: onEdit)
         : _BorderCard(
             noticia: noticia,
             canChangeState: canChangeState,
-            onToggle: onToggle);
+            onToggle: onToggle,
+            onEdit: onEdit);
   }
 }
 
@@ -208,11 +483,13 @@ class _ImageCard extends StatelessWidget {
   final NoticiaModel noticia;
   final bool canChangeState;
   final ValueChanged<bool> onToggle;
+  final VoidCallback onEdit;
 
   const _ImageCard({
     required this.noticia,
     required this.canChangeState,
     required this.onToggle,
+    required this.onEdit,
   });
 
   @override
@@ -292,6 +569,7 @@ class _ImageCard extends StatelessWidget {
                     isVisible: noticia.isVisible,
                     canChangeState: canChangeState,
                     onToggle: onToggle,
+                    onEdit: onEdit,
                   ),
                 ],
               ),
@@ -309,11 +587,13 @@ class _BorderCard extends StatelessWidget {
   final NoticiaModel noticia;
   final bool canChangeState;
   final ValueChanged<bool> onToggle;
+  final VoidCallback onEdit;
 
   const _BorderCard({
     required this.noticia,
     required this.canChangeState,
     required this.onToggle,
+    required this.onEdit,
   });
 
   @override
@@ -387,6 +667,7 @@ class _BorderCard extends StatelessWidget {
                       isVisible: noticia.isVisible,
                       canChangeState: canChangeState,
                       onToggle: onToggle,
+                      onEdit: onEdit,
                     ),
                   ],
                 ),
@@ -474,12 +755,14 @@ class _CardFooter extends StatelessWidget {
   final bool isVisible;
   final bool canChangeState;
   final ValueChanged<bool> onToggle;
+  final VoidCallback onEdit;
 
   const _CardFooter({
     required this.status,
     required this.isVisible,
     required this.canChangeState,
     required this.onToggle,
+    required this.onEdit,
   });
 
   @override
@@ -488,9 +771,38 @@ class _CardFooter extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         StatusBadge(status: status),
-        if (canChangeState)
-          Row(
-            children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: onEdit,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.metricDraftBg,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.edit_outlined,
+                        color: AppColors.primaryPurple, size: 13),
+                    SizedBox(width: 4),
+                    Text(
+                      'Editar',
+                      style: TextStyle(
+                        color: AppColors.primaryPurple,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (canChangeState) ...[
+              const SizedBox(width: 8),
               Text(
                 isVisible ? 'VISIBLE' : 'OCULTO',
                 style: const TextStyle(
@@ -500,7 +812,7 @@ class _CardFooter extends StatelessWidget {
                   letterSpacing: 0.5,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 4),
               Transform.scale(
                 scale: 0.8,
                 child: Switch(
@@ -511,7 +823,8 @@ class _CardFooter extends StatelessWidget {
                 ),
               ),
             ],
-          ),
+          ],
+        ),
       ],
     );
   }

@@ -1,4 +1,5 @@
 import 'package:app/core/app/app_colors.dart';
+import 'package:app/models/noticia_model.dart';
 import 'package:app/models/pais_model.dart';
 import 'package:app/provider/auth_provider.dart';
 import 'package:app/provider/noticias_provider.dart';
@@ -7,11 +8,13 @@ import 'package:app/widgets/forms/app_country_dropdown.dart';
 import 'package:app/widgets/forms/app_form_card.dart';
 import 'package:app/widgets/forms/app_form_field.dart';
 import 'package:app/widgets/forms/app_segmented_selector.dart';
+import 'package:app/widgets/forms/image_picker_field.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class FormularioNoticiasPage extends StatefulWidget {
-  const FormularioNoticiasPage({super.key});
+  final NoticiaModel? noticia; // null = crear, non-null = editar
+  const FormularioNoticiasPage({super.key, this.noticia});
 
   @override
   State<FormularioNoticiasPage> createState() => _FormularioNoticiasPageState();
@@ -29,12 +32,23 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
   bool _saving = false;
   static const int _maxContenido = 2500;
 
+  bool get _isEditing => widget.noticia != null;
+
   @override
   void initState() {
     super.initState();
     _contenidoController.addListener(() {
       setState(() => _contenidoChars = _contenidoController.text.length);
     });
+    if (_isEditing) {
+      final n = widget.noticia!;
+      _imageUrlController.text = n.imagenUrl ?? '';
+      _titleController.text = n.titulo;
+      _resumenController.text = n.resumen;
+      _contenidoController.text = n.contenido;
+      _selectedCountry = n.pais;
+      _selectedStatus = n.estado == 'publicado' ? 1 : 0;
+    }
   }
 
   @override
@@ -63,7 +77,7 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
     }
 
     final user = context.read<AuthProvider>().user;
-    final paisId = _selectedCountry?.id ?? user?.paisAsignado?.id ?? '';
+    final paisId = _selectedCountry?.id ?? widget.noticia?.pais.id ?? user?.paisAsignado?.id ?? '';
 
     if (paisId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,7 +91,8 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
     }
 
     setState(() => _saving = true);
-    final ok = await context.read<NoticiasProvider>().crear({
+
+    final data = {
       'titulo': titulo,
       'resumen': resumen,
       'contenido': contenido,
@@ -86,7 +101,16 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
       'estado': ['borrador', 'publicado'][_selectedStatus],
       if (_imageUrlController.text.isNotEmpty)
         'imagen_url': _imageUrlController.text.trim(),
-    });
+    };
+
+    final provider = context.read<NoticiasProvider>();
+    final bool ok;
+    if (_isEditing) {
+      ok = await provider.actualizar(widget.noticia!.id, data);
+    } else {
+      ok = await provider.crear(data);
+    }
+
     if (!mounted) return;
     setState(() => _saving = false);
 
@@ -94,8 +118,8 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error al guardar la noticia'),
+        SnackBar(
+          content: Text(_isEditing ? 'Error al actualizar la noticia' : 'Error al guardar la noticia'),
           backgroundColor: AppColors.errorColor,
           behavior: SnackBarBehavior.floating,
         ),
@@ -110,12 +134,18 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
 
     return Scaffold(
       backgroundColor: AppColors.formBackground,
-      appBar: _FormAppBar(saving: _saving, onPublish: _onPublish),
+      appBar: _FormAppBar(
+        saving: _saving,
+        onPublish: _onPublish,
+        title: _isEditing ? 'Editar noticia' : 'Nueva noticia',
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
         child: Column(
           children: [
-            _CoverCard(controller: _imageUrlController),
+            AppFormCard(
+              child: ImagePickerField(controller: _imageUrlController),
+            ),
             const SizedBox(height: 14),
             _ContentCard(
               titleController: _titleController,
@@ -129,7 +159,7 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
               authorName: user?.nombre ?? 'Admin',
               selectedCountry: isAdminPais ? null : _selectedCountry,
               showCountryPicker: !isAdminPais,
-              fixedCountry: user?.paisAsignado?.nombre,
+              fixedCountry: user?.paisAsignado?.nombre ?? widget.noticia?.pais.nombre,
               onCountryChanged: (p) => setState(() => _selectedCountry = p),
             ),
             const SizedBox(height: 14),
@@ -137,6 +167,7 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
               selectedIndex: _selectedStatus,
               onSelected: (i) => setState(() => _selectedStatus = i),
               saving: _saving,
+              isEditing: _isEditing,
               onSaveDraft: () {
                 setState(() => _selectedStatus = 0);
                 _onPublish();
@@ -160,7 +191,8 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
 class _FormAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool saving;
   final VoidCallback onPublish;
-  const _FormAppBar({required this.saving, required this.onPublish});
+  final String title;
+  const _FormAppBar({required this.saving, required this.onPublish, required this.title});
 
   @override
   Size get preferredSize => const Size.fromHeight(56);
@@ -168,107 +200,61 @@ class _FormAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back_rounded,
-                    color: AppColors.white, size: 22),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const Expanded(
-                child: Text(
-                  'Nueva noticia',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: saving ? null : onPublish,
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.white.withValues(alpha: 0.2),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                child: saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            color: AppColors.white, strokeWidth: 2),
-                      )
-                    : const Text(
-                        'Publicar',
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-              ),
-              const SizedBox(width: 8),
-            ],
-          ),
+      decoration: const BoxDecoration(
+        color: AppColors.white,
+        border: Border(
+          bottom: BorderSide(color: AppColors.inputBorder, width: 1),
         ),
       ),
-    );
-  }
-}
-
-// ─── Cover Card ───────────────────────────────────────────────────────────────
-
-class _CoverCard extends StatelessWidget {
-  final TextEditingController controller;
-  const _CoverCard({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return AppFormCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            height: 160,
-            decoration: BoxDecoration(
-              color: AppColors.metricDraftBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.inputBorder, width: 2),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_rounded,
+                  color: AppColors.primary, size: 22),
+              onPressed: () => Navigator.pop(context),
             ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.image_outlined,
-                    color: AppColors.primaryPurple, size: 40),
-                SizedBox(height: 8),
-                Text('Imagen de portada (opcional)',
-                    style: TextStyle(
-                        color: AppColors.textPrimary,
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: saving ? null : onPublish,
+              style: TextButton.styleFrom(
+                backgroundColor: AppColors.metricDraftBg,
+                foregroundColor: AppColors.primaryPurple,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+              child: saving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          color: AppColors.primaryPurple, strokeWidth: 2),
+                    )
+                  : const Text(
+                      'Guardar',
+                      style: TextStyle(
+                        color: AppColors.primaryPurple,
                         fontSize: 14,
-                        fontWeight: FontWeight.w600)),
-                SizedBox(height: 4),
-                Text('Formatos recomendados: JPG, PNG (16:9)',
-                    style:
-                        TextStyle(color: AppColors.textHint, fontSize: 11)),
-              ],
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
             ),
-          ),
-          const SizedBox(height: 14),
-          AppFormField(
-            label: 'URL de la imagen',
-            hint: 'https://ejemplo.com/imagen.jpg',
-            prefixIcon: Icons.link_rounded,
-            controller: controller,
-            keyboardType: TextInputType.url,
-          ),
-        ],
+            const SizedBox(width: 8),
+          ],
+        ),
       ),
     );
   }
@@ -422,6 +408,7 @@ class _StatusCard extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final bool saving;
+  final bool isEditing;
   final VoidCallback onSaveDraft;
   final VoidCallback onPublish;
 
@@ -429,6 +416,7 @@ class _StatusCard extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     required this.saving,
+    required this.isEditing,
     required this.onSaveDraft,
     required this.onPublish,
   });
@@ -451,27 +439,29 @@ class _StatusCard extends StatelessWidget {
             onSelected: onSelected,
           ),
           const SizedBox(height: 20),
-          GestureDetector(
-            onTap: saving ? null : onSaveDraft,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.inputBorder, width: 1.5),
-              ),
-              child: const Text(
-                'Guardar borrador',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600),
+          if (!isEditing) ...[
+            GestureDetector(
+              onTap: saving ? null : onSaveDraft,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.inputBorder, width: 1.5),
+                ),
+                child: const Text(
+                  'Guardar borrador',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
+            const SizedBox(height: 10),
+          ],
           GestureDetector(
             onTap: saving ? null : onPublish,
             child: Container(
@@ -482,16 +472,16 @@ class _StatusCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primaryPurple.withValues(alpha: 0.35),
+                    color: AppColors.primary.withValues(alpha: 0.35),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
-                  'Publicar noticia',
-                  style: TextStyle(
+                  isEditing ? 'Guardar cambios' : 'Publicar noticia',
+                  style: const TextStyle(
                       color: AppColors.white,
                       fontSize: 15,
                       fontWeight: FontWeight.w700),

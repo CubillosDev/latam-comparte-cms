@@ -61,10 +61,10 @@ class NoticiaModel {
 
   Color get authorColor {
     const colors = [
-      Color(0xFF7C3AC7),
-      Color(0xFF1D4ED8),
-      Color(0xFF15803D),
-      Color(0xFFDC2626),
+      Color(0xFF0F0F0F),
+      Color(0xFF047857),
+      Color(0xFFB45309),
+      Color(0xFF404040),
     ];
     return colors[autor.length % colors.length];
   }

@@ -37,6 +37,17 @@ class NoticiasProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> actualizar(String id, Map<String, dynamic> data) async {
+    try {
+      final actualizada = await _service.actualizar(id, data);
+      _noticias = _noticias.map((n) => n.id == id ? actualizada : n).toList();
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<bool> cambiarEstado(String id, String nuevoEstado) async {
     try {
       final actualizada = await _service.cambiarEstado(id, nuevoEstado);
