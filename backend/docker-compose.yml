@@ -1,0 +1,55 @@
+services:
+
+  # ──────────────────────────────────────────────────
+  # Servicio 1: MongoDB
+  # ──────────────────────────────────────────────────
+  mongo:
+    image: mongo:6
+      container_name: unidev-mongo
+      ports:
+        - "27017:27017"          # Expone Mongo para conectarte desde MongoDB Compass
+      volumes:
+        - datos-mongo:/data/db   # Los datos persisten aunque el contenedor se elimine
+      networks:
+        - unidev-net
+      healthcheck:               # Verifica que MongoDB esté listo antes de iniciar la API
+        test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+        interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────────────
+  # Servicio 2: API Backend (Node.js + TypeScript)
+  # ──────────────────────────────────────────────────
+  api:
+    build:
+      context: .              # Construye desde el Dockerfile en el directorio actual
+      dockerfile: Dockerfile
+    container_name: unidev-api
+    ports:
+      - "3000:3000"            # Tu PC:3000 → Contenedor:3000
+    environment:
+      # La URL usa 'mongo' como host (nombre del servicio en la red Docker)
+      - DB_CONNECTION=mongodb://mongo:27017/unidev
+      - DB_CONNECTION_TEST=mongodb://mongo:27017/unidev_test
+      - PORT=3000
+      - JWT_KEY=mi-clave-jwt-super-secreta-cambiar-en-produccion
+    volumes:
+      # Bind mount: cambios en ./src se reflejan inmediatamente sin reconstruir
+      - ./src:/app/src
+    depends_on:
+      mongo:
+        condition: service_healthy  # Espera a que Mongo pase el healthcheck
+    networks:
+      - unidev-net
+    restart: on-failure        # Reinicia automáticamente si la app falla
+
+# ──────────────────────────────────────────────────
+# Volúmenes y Redes
+# ──────────────────────────────────────────────────
+volumes:
+  datos-mongo:               # Volumen nombrado para los datos de MongoDB
+
+networks:
+  unidev-net:                # Red compartida entre api y mongo
+    driver: bridge

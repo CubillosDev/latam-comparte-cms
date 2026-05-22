@@ -1,0 +1,12 @@
+export 'package:app/screens/loading_page.dart';
+export 'package:app/screens/auth/login.dart';
+export 'package:app/screens/dashboard/dashboard_admin_pais.dart';
+export 'package:app/screens/dashboard/dashboard_super_admin.dart';
+export 'package:app/screens/portales/all_portals_page.dart';
+export 'package:app/screens/solicitudes/request_page.dart';
+export 'package:app/screens/solicitudes/request_details_page.dart';
+export 'package:app/screens/testimonios/testimonios_page.dart';
+export 'package:app/screens/testimonios/formulario_testimonios_page.dart';
+export 'package:app/screens/noticias/noticias_page.dart';
+export 'package:app/screens/noticias/formulario_noticias_page.dart';
+export 'package:app/screens/contacto/contact_page.dart';
