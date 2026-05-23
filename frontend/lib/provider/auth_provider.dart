@@ -74,4 +74,24 @@ class AuthProvider extends ChangeNotifier {
     _status = AuthStatus.idle;
     notifyListeners();
   }
+
+  Future<bool> actualizarPerfil(String nombre) async {
+    try {
+      _user = await _authService.actualizarPerfil(nombre);
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> cambiarPassword(
+      String passwordActual, String passwordNuevo) async {
+    try {
+      await _authService.cambiarPassword(passwordActual, passwordNuevo);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }

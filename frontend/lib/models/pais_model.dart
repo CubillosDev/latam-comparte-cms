@@ -21,8 +21,18 @@ class PaisModel {
   String? get domain => null;
 
   String get flag {
-    const flags = {'CO': '🇨🇴', 'CL': '🇨🇱', 'EC': '🇪🇨'};
+    const flags = {'CO': '🇨🇴', 'CL': '🇨🇱', 'EC': '🇪🇨', 'AR': '🇦🇷'};
     return flags[codigo] ?? '🌍';
+  }
+
+  String get logoAsset {
+    const logos = {
+      'CO': 'assets/logos/colombia.png',
+      'CL': 'assets/logos/chile.png',
+      'EC': 'assets/logos/ecuador.png',
+      'AR': 'assets/logos/argentina.png',
+    };
+    return logos[codigo] ?? 'assets/logos/latam.png';
   }
 
   Color get accentColor {
@@ -30,8 +40,9 @@ class PaisModel {
       'CO': Color(0xFFF59E0B),
       'CL': Color(0xFFDC2626),
       'EC': Color(0xFF0891B2),
+      'AR': Color(0xFF74C2E1),
     };
-    return colors[codigo] ?? const Color(0xFF7C3AC7);
+    return colors[codigo] ?? const Color(0xFF737373);
   }
 }
 

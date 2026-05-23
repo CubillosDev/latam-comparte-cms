@@ -19,4 +19,19 @@ class AuthService {
     final data = response.data as Map<String, dynamic>;
     return User.fromJson(data['user'] as Map<String, dynamic>);
   }
+
+  Future<User> actualizarPerfil(String nombre) async {
+    final response =
+        await _dio.patch('/api/v1/auth/perfil', data: {'nombre': nombre});
+    final data = response.data as Map<String, dynamic>;
+    return User.fromJson(data['user'] as Map<String, dynamic>);
+  }
+
+  Future<void> cambiarPassword(
+      String passwordActual, String passwordNuevo) async {
+    await _dio.post('/api/v1/auth/cambiar-password', data: {
+      'password_actual': passwordActual,
+      'password_nuevo': passwordNuevo,
+    });
+  }
 }
