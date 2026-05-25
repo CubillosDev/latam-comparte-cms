@@ -2,8 +2,10 @@ import 'package:app/core/app/app_theme.dart';
 import 'package:app/provider/auth_provider.dart';
 import 'package:app/provider/noticias_provider.dart';
 import 'package:app/provider/paises_provider.dart';
+import 'package:app/provider/reportes_provider.dart';
 import 'package:app/provider/solicitudes_provider.dart';
 import 'package:app/provider/testimonios_provider.dart';
+import 'package:app/provider/usuarios_provider.dart';
 import 'package:app/routes/routes.dart';
 import 'package:app/services/api_client.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +24,8 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => NoticiasProvider()),
         ChangeNotifierProvider(create: (_) => TestimoniosProvider()),
         ChangeNotifierProvider(create: (_) => SolicitudesProvider()),
+        ChangeNotifierProvider(create: (_) => ReportesProvider()),
+        ChangeNotifierProvider(create: (_) => UsuariosProvider()),
       ],
       child: const MyApp(),
     ),
@@ -36,6 +40,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Latinoamérica Comparte',
       debugShowCheckedModeBanner: false,
+      navigatorKey: ApiClient.navigatorKey,
       routes: routes,
       initialRoute: '/',
       theme: AppTheme.theme,

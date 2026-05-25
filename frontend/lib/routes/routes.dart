@@ -14,4 +14,8 @@ Map<String, WidgetBuilder> routes = {
   '/noticias': (context) => const NoticiasPage(),
   '/noticias/nuevo': (context) => const FormularioNoticiasPage(),
   '/contacto': (context) => const ContactPage(),
+  '/perfil': (context) => const PerfilPage(),
+  '/reportes': (context) => const ReportesPage(),
+  '/usuarios': (context) => const UsuariosPage(),
+  '/configuracion': (context) => const ConfiguracionPage(),
 };

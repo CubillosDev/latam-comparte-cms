@@ -10,3 +10,7 @@ export 'package:app/screens/testimonios/formulario_testimonios_page.dart';
 export 'package:app/screens/noticias/noticias_page.dart';
 export 'package:app/screens/noticias/formulario_noticias_page.dart';
 export 'package:app/screens/contacto/contact_page.dart';
+export 'package:app/screens/perfil/perfil_page.dart';
+export 'package:app/screens/reportes/reportes_page.dart';
+export 'package:app/screens/usuarios/usuarios_page.dart';
+export 'package:app/screens/configuracion/configuracion_page.dart';
