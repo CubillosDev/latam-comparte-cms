@@ -1,3 +1,7 @@
+# Archivos subidos en runtime
+backend/uploads/*
+!backend/uploads/.gitkeep
+
 # Variables de entorno — NUNCA subir
 .env
 .env.local

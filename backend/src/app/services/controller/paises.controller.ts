@@ -29,7 +29,7 @@ export class PaisesController {
           ]);
 
           return {
-            pais: { id: pais._id, nombre: pais.nombre, codigo: pais.codigo },
+            pais: { id: pais._id, nombre: pais.nombre, codigo: pais.codigo, activo: pais.activo },
             solicitudesPendientes,
             noticiasActivas,
             testimoniosPublicados,
@@ -68,7 +68,7 @@ export class PaisesController {
 
       res.status(200).json({
         ok: true,
-        pais: { id: pais._id, nombre: pais.nombre, codigo: pais.codigo },
+        pais: { id: pais._id, nombre: pais.nombre, codigo: pais.codigo, activo: pais.activo },
         metrics: { solicitudesPendientes, noticiasActivas, testimoniosPublicados, totalSolicitudes },
       });
     } catch (error) {
