@@ -1,6 +1,7 @@
 import 'package:app/core/app/app_colors.dart';
 import 'package:app/core/enums.dart';
 import 'package:app/models/solicitud_model.dart';
+import 'package:app/provider/auth_provider.dart';
 import 'package:app/provider/solicitudes_provider.dart';
 import 'package:app/widgets/common/app_drawer.dart';
 import 'package:app/widgets/common/app_filter_bar.dart';
@@ -18,6 +19,7 @@ class RequestPage extends StatefulWidget {
 class _RequestPageState extends State<RequestPage> {
   int _selectedFilter = 0;
   String _searchQuery = '';
+  String? _selectedPaisCode;
   final _searchController = TextEditingController();
 
   static const _filters = [
@@ -54,6 +56,10 @@ class _RequestPageState extends State<RequestPage> {
   List<SolicitudModel> _filtered(List<SolicitudModel> all) {
     var list = all;
 
+    if (_selectedPaisCode != null) {
+      list = list.where((s) => s.pais.codigo == _selectedPaisCode).toList();
+    }
+
     if (_selectedFilter != 0) {
       final label = _filters[_selectedFilter].toLowerCase();
       list = list.where((s) {
@@ -80,7 +86,14 @@ class _RequestPageState extends State<RequestPage> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<SolicitudesProvider>();
+    final isSuperAdmin = context.watch<AuthProvider>().user?.isSuperAdmin == true;
     final items = _filtered(provider.solicitudes);
+
+    final paises = provider.solicitudes
+        .map((s) => s.pais)
+        .toSet()
+        .toList()
+      ..sort((a, b) => a.nombre.compareTo(b.nombre));
 
     return Scaffold(
       backgroundColor: AppColors.formBackground,
@@ -108,6 +121,26 @@ class _RequestPageState extends State<RequestPage> {
                   onSelected: (i) => setState(() => _selectedFilter = i),
                   padding: EdgeInsets.zero,
                 ),
+                if (isSuperAdmin && paises.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _PaisChip(
+                          label: 'Todos',
+                          selected: _selectedPaisCode == null,
+                          onTap: () => setState(() => _selectedPaisCode = null),
+                        ),
+                        ...paises.map((p) => _PaisChip(
+                          label: p.nombre,
+                          selected: _selectedPaisCode == p.codigo,
+                          onTap: () => setState(() => _selectedPaisCode = p.codigo),
+                        )),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 4),
               ],
             ),
@@ -153,6 +186,41 @@ class _RequestPageState extends State<RequestPage> {
       ),
       drawer: const AppDrawer(),
       bottomNavigationBar: const DashboardBottomNav(currentIndex: 1),
+    );
+  }
+}
+
+// ─── País Chip ────────────────────────────────────────────────────────────────
+
+class _PaisChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _PaisChip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primaryPurple : AppColors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.primaryPurple : AppColors.inputBorder,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? AppColors.white : AppColors.textSecondary,
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 }

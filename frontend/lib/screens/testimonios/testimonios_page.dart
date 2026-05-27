@@ -152,6 +152,31 @@ class _TestimoniosPageState extends State<TestimoniosPage> {
                                     FormularioTestimoniosPage(testimonio: t),
                               ),
                             ),
+                            onDelete: user?.canDelete == true
+                                ? () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Eliminar testimonio'),
+                                        content: Text('¿Eliminar el testimonio de "${t.nombre}"? Esta acción no se puede deshacer.'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx, false),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx, true),
+                                            style: TextButton.styleFrom(foregroundColor: AppColors.errorColor),
+                                            child: const Text('Eliminar'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true && context.mounted) {
+                                      context.read<TestimoniosProvider>().eliminar(t.id);
+                                    }
+                                  }
+                                : null,
                           );
                         },
                       ),
@@ -319,12 +344,14 @@ class _TestimonioCard extends StatelessWidget {
   final bool canChangeState;
   final ValueChanged<bool> onToggleVisibility;
   final VoidCallback onEdit;
+  final VoidCallback? onDelete;
 
   const _TestimonioCard({
     required this.testimonio,
     required this.canChangeState,
     required this.onToggleVisibility,
     required this.onEdit,
+    this.onDelete,
   });
 
   Color get _borderColor => switch (testimonio.status) {
@@ -427,6 +454,24 @@ class _TestimonioCard extends StatelessWidget {
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            if (onDelete != null) ...[
+                              GestureDetector(
+                                onTap: onDelete,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.errorBg,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                      Icons.delete_outline_rounded,
+                                      color: AppColors.errorColor,
+                                      size: 14),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
                             GestureDetector(
                               onTap: onEdit,
                               child: Container(
@@ -499,6 +544,7 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hasFoto = testimonio.fotoUrl.isNotEmpty;
     return Container(
       width: 42,
       height: 42,
@@ -506,16 +552,36 @@ class _Avatar extends StatelessWidget {
         color: testimonio.avatarColor.withValues(alpha: 0.15),
         shape: BoxShape.circle,
       ),
-      child: Center(
-        child: Text(
-          testimonio.initials,
-          style: TextStyle(
-            color: testimonio.avatarColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
+      child: hasFoto
+          ? ClipOval(
+              child: Image.network(
+                testimonio.fotoUrl,
+                key: ValueKey(testimonio.fotoUrl),
+                width: 42,
+                height: 42,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Center(
+                  child: Text(
+                    testimonio.initials,
+                    style: TextStyle(
+                      color: testimonio.avatarColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : Center(
+              child: Text(
+                testimonio.initials,
+                style: TextStyle(
+                  color: testimonio.avatarColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
     );
   }
 }

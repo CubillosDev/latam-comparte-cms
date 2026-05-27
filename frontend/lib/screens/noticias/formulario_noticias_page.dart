@@ -100,7 +100,9 @@ class _FormularioNoticiasPageState extends State<FormularioNoticiasPage> {
       'pais': paisId,
       'estado': ['borrador', 'publicado'][_selectedStatus],
       if (_imageUrlController.text.isNotEmpty)
-        'imagen_url': _imageUrlController.text.trim(),
+        'imagen_url': _imageUrlController.text.trim()
+      else if (_isEditing)
+        'imagen_url': null,
     };
 
     final provider = context.read<NoticiasProvider>();

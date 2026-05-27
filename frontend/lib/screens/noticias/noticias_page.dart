@@ -196,6 +196,31 @@ class _NoticiasPageState extends State<NoticiasPage> {
                                     FormularioNoticiasPage(noticia: noticia),
                               ),
                             ),
+                            onDelete: user?.canDelete == true
+                                ? () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('Eliminar noticia'),
+                                        content: Text('¿Eliminar "${noticia.titulo}"? Esta acción no se puede deshacer.'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx, false),
+                                            child: const Text('Cancelar'),
+                                          ),
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx, true),
+                                            style: TextButton.styleFrom(foregroundColor: AppColors.errorColor),
+                                            child: const Text('Eliminar'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true && context.mounted) {
+                                      context.read<NoticiasProvider>().eliminar(noticia.id);
+                                    }
+                                  }
+                                : null,
                           );
                         },
                       ),
@@ -453,12 +478,14 @@ class _NoticiaCard extends StatelessWidget {
   final bool canChangeState;
   final ValueChanged<bool> onToggle;
   final VoidCallback onEdit;
+  final VoidCallback? onDelete;
 
   const _NoticiaCard({
     required this.noticia,
     required this.canChangeState,
     required this.onToggle,
     required this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -468,12 +495,14 @@ class _NoticiaCard extends StatelessWidget {
             noticia: noticia,
             canChangeState: canChangeState,
             onToggle: onToggle,
-            onEdit: onEdit)
+            onEdit: onEdit,
+            onDelete: onDelete)
         : _BorderCard(
             noticia: noticia,
             canChangeState: canChangeState,
             onToggle: onToggle,
-            onEdit: onEdit);
+            onEdit: onEdit,
+            onDelete: onDelete);
   }
 }
 
@@ -484,12 +513,14 @@ class _ImageCard extends StatelessWidget {
   final bool canChangeState;
   final ValueChanged<bool> onToggle;
   final VoidCallback onEdit;
+  final VoidCallback? onDelete;
 
   const _ImageCard({
     required this.noticia,
     required this.canChangeState,
     required this.onToggle,
     required this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -512,13 +543,29 @@ class _ImageCard extends StatelessWidget {
           children: [
             Stack(
               children: [
-                Container(
+                SizedBox(
                   height: 180,
                   width: double.infinity,
-                  color: noticia.thumbnailColor,
-                  child: Center(
-                    child: Icon(noticia.thumbnailIcon,
-                        color: Colors.white.withValues(alpha: 0.3), size: 64),
+                  child: Image.network(
+                    noticia.imagenUrl!,
+                    key: ValueKey(noticia.imagenUrl),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Container(
+                      color: noticia.thumbnailColor,
+                      child: Center(
+                        child: Icon(noticia.thumbnailIcon,
+                            color: Colors.white.withValues(alpha: 0.3), size: 64),
+                      ),
+                    ),
+                    loadingBuilder: (_, child, progress) => progress == null
+                        ? child
+                        : Container(
+                            color: noticia.thumbnailColor,
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white54),
+                            ),
+                          ),
                   ),
                 ),
                 Positioned(
@@ -570,6 +617,7 @@ class _ImageCard extends StatelessWidget {
                     canChangeState: canChangeState,
                     onToggle: onToggle,
                     onEdit: onEdit,
+                    onDelete: onDelete,
                   ),
                 ],
               ),
@@ -588,12 +636,14 @@ class _BorderCard extends StatelessWidget {
   final bool canChangeState;
   final ValueChanged<bool> onToggle;
   final VoidCallback onEdit;
+  final VoidCallback? onDelete;
 
   const _BorderCard({
     required this.noticia,
     required this.canChangeState,
     required this.onToggle,
     required this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -668,6 +718,7 @@ class _BorderCard extends StatelessWidget {
                       canChangeState: canChangeState,
                       onToggle: onToggle,
                       onEdit: onEdit,
+                      onDelete: onDelete,
                     ),
                   ],
                 ),
@@ -756,6 +807,7 @@ class _CardFooter extends StatelessWidget {
   final bool canChangeState;
   final ValueChanged<bool> onToggle;
   final VoidCallback onEdit;
+  final VoidCallback? onDelete;
 
   const _CardFooter({
     required this.status,
@@ -763,6 +815,7 @@ class _CardFooter extends StatelessWidget {
     required this.canChangeState,
     required this.onToggle,
     required this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -774,6 +827,21 @@ class _CardFooter extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (onDelete != null) ...[
+              GestureDetector(
+                onTap: onDelete,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.errorBg,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.delete_outline_rounded,
+                      color: AppColors.errorColor, size: 14),
+                ),
+              ),
+              const SizedBox(width: 6),
+            ],
             GestureDetector(
               onTap: onEdit,
               child: Container(

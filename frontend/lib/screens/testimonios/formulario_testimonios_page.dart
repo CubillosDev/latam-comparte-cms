@@ -109,7 +109,9 @@ class _FormularioTestimoniosPageState
       'pais': paisId,
       'estado': ['borrador', 'publicado', 'despublicado'][_selectedStatus],
       if (_imageUrlController.text.isNotEmpty)
-        'foto_url': _imageUrlController.text.trim(),
+        'foto_url': _imageUrlController.text.trim()
+      else if (_isEditing)
+        'foto_url': null,
       if (_instagramController.text.isNotEmpty)
         'instagram_url': _instagramController.text.trim(),
       if (_facebookController.text.isNotEmpty)

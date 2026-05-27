@@ -1,8 +1,8 @@
 import 'package:app/core/app/app_colors.dart';
 import 'package:app/core/enums.dart';
-import 'package:app/models/actividad_model.dart';
 import 'package:app/provider/auth_provider.dart';
 import 'package:app/provider/paises_provider.dart';
+import 'package:app/provider/reportes_provider.dart';
 import 'package:app/widgets/common/app_drawer.dart';
 import 'package:app/widgets/common/status_badge.dart';
 import 'package:app/widgets/dashboard/dashboard_bottom_nav.dart';
@@ -25,6 +25,7 @@ class _DashboardSuperAdminPageState extends State<DashboardSuperAdminPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<PaisesProvider>().cargarDashboardSuperAdmin();
+      context.read<ReportesProvider>().cargar();
     });
   }
 
@@ -67,7 +68,7 @@ class _DashboardSuperAdminPageState extends State<DashboardSuperAdminPage> {
             const SizedBox(height: 16),
             const _PaisesActivosSection(),
             const SizedBox(height: 16),
-            const _ActividadRecienteSection(),
+            const _EstadoSolicitudesSection(),
             const SizedBox(height: 16),
             const _ResumenContenidoSection(),
             const SizedBox(height: 8),
@@ -221,7 +222,7 @@ class _PaisesActivosSection extends StatelessWidget {
                   title: m.pais.nombre,
                   subtitle: '${m.solicitudesPendientes} solicitudes pendientes',
                   leading: _FlagAvatar(logoAsset: m.pais.logoAsset, flag: m.pais.flag),
-                  trailing: const StatusBadge(status: BadgeStatus.published),
+                  trailing: StatusBadge(status: m.pais.activo ? BadgeStatus.published : BadgeStatus.draft),
                   showDivider: i < metricas.length - 1,
                 );
               }),
@@ -259,55 +260,75 @@ class _FlagAvatar extends StatelessWidget {
   }
 }
 
-// ─── Actividad Reciente ───────────────────────────────────────────────────────
+// ─── Estado de Solicitudes ────────────────────────────────────────────────────
 
-class _ActividadRecienteSection extends StatelessWidget {
-  const _ActividadRecienteSection();
+class _EstadoSolicitudesSection extends StatelessWidget {
+  const _EstadoSolicitudesSection();
 
   @override
   Widget build(BuildContext context) {
+    final data = context.watch<ReportesProvider>().data;
+    final sol = data?.solicitudes ?? {};
+    final pendientes = sol['pendiente'] ?? 0;
+    final aprobadas = sol['aprobado'] ?? 0;
+    final rechazadas = sol['rechazado'] ?? 0;
+
+    final items = [
+      (Icons.hourglass_top_rounded, AppColors.metricPendingText, AppColors.metricPendingBg, 'Pendientes', pendientes),
+      (Icons.check_circle_outline_rounded, AppColors.statusPublishedText, AppColors.statusPublishedBg, 'Aprobadas', aprobadas),
+      (Icons.cancel_outlined, AppColors.errorColor, AppColors.errorBg, 'Rechazadas', rechazadas),
+    ];
+
     return DashboardCard(
-      title: 'Actividad reciente',
+      title: 'Estado de solicitudes',
+      actionLabel: 'Ver todas',
+      onAction: () => Navigator.pushNamed(context, '/solicitudes'),
       child: Column(
-        children: List.generate(actividadRecienteMock.length, (i) {
-          final item = actividadRecienteMock[i];
-          return ListItemRow(
-            title: item.title,
-            subtitle: item.subtitle,
-            leading: _ActivityIcon(
-              icon: item.icon,
-              color: item.color,
-              bgColor: item.bgColor,
-            ),
-            showDivider: i < actividadRecienteMock.length - 1,
+        children: List.generate(items.length, (i) {
+          final (icon, color, bg, label, count) = items[i];
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: bg,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(icon, color: color, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '$count',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (i < items.length - 1)
+                const Divider(height: 1, color: AppColors.inputBorder),
+            ],
           );
         }),
       ),
-    );
-  }
-}
-
-class _ActivityIcon extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final Color bgColor;
-
-  const _ActivityIcon({
-    required this.icon,
-    required this.color,
-    required this.bgColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Icon(icon, color: color, size: 20),
     );
   }
 }

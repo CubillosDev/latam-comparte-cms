@@ -1,4 +1,5 @@
 import 'package:app/core/app/app_colors.dart';
+import 'package:app/models/user_model.dart';
 import 'package:app/provider/auth_provider.dart';
 import 'package:app/widgets/common/app_drawer.dart';
 import 'package:app/widgets/dashboard/dashboard_bottom_nav.dart';
@@ -18,12 +19,6 @@ class PerfilPage extends StatelessWidget {
       _ => 'Usuario',
     };
     final paisLabel = user?.paisAsignado?.nombre ?? 'Global (todos los países)';
-    final initials = () {
-      final parts = (user?.nombre ?? '').trim().split(' ');
-      if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-      return (user?.nombre ?? 'U').isNotEmpty ? (user?.nombre ?? 'U')[0].toUpperCase() : 'U';
-    }();
-
     return Scaffold(
       backgroundColor: AppColors.formBackground,
       drawer: const AppDrawer(),
@@ -31,7 +26,7 @@ class PerfilPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
         children: [
-          _AvatarCard(initials: initials, nombre: user?.nombre ?? '', rolLabel: rolLabel),
+          _AvatarCard(user: user, nombre: user?.nombre ?? '', rolLabel: rolLabel),
           const SizedBox(height: 20),
           _InfoSection(
             title: 'Información de la cuenta',
@@ -123,12 +118,12 @@ class _PerfilAppBar extends StatelessWidget implements PreferredSizeWidget {
 // ─── Avatar Card ──────────────────────────────────────────────────────────────
 
 class _AvatarCard extends StatelessWidget {
-  final String initials;
+  final User? user;
   final String nombre;
   final String rolLabel;
 
   const _AvatarCard({
-    required this.initials,
+    required this.user,
     required this.nombre,
     required this.rolLabel,
   });
@@ -229,21 +224,18 @@ class _AvatarCard extends StatelessWidget {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.15),
+                      color: AppColors.white,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.white.withValues(alpha: 0.25),
-                        width: 2,
+                        color: AppColors.white.withValues(alpha: 0.5),
+                        width: 2.5,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Image.asset(
+                        user?.logoAsset ?? 'assets/logos/latam.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),
