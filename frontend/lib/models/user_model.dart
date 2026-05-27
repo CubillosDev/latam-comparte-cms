@@ -28,6 +28,17 @@ class User {
   bool get isEditor => rol == 'editor';
   bool get canDelete => rol == 'superadmin' || rol == 'admin_pais';
 
+  String get logoAsset {
+    if (isSuperAdmin) return 'assets/logos/latam.png';
+    const logos = {
+      'CO': 'assets/logos/colombia.png',
+      'CL': 'assets/logos/chile.png',
+      'EC': 'assets/logos/ecuador.png',
+      'AR': 'assets/logos/argentina.png',
+    };
+    return logos[paisAsignado?.codigo] ?? 'assets/logos/latam.png';
+  }
+
   factory User.fromJson(Map<String, dynamic> json) => User(
         id: json['id']?.toString() ?? json['_id']?.toString() ?? '',
         nombre: json['nombre'] as String,

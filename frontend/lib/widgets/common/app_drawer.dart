@@ -115,12 +115,6 @@ class _DrawerHeader extends StatelessWidget {
     };
 
     final nombre = user?.nombre ?? '';
-    final parts = nombre.trim().split(' ');
-    final initials = parts.length >= 2
-        ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
-        : nombre.isNotEmpty
-            ? nombre[0].toUpperCase()
-            : 'U';
 
     return ClipRRect(
       borderRadius: const BorderRadius.only(topRight: Radius.circular(24)),
@@ -211,21 +205,18 @@ class _DrawerHeader extends StatelessWidget {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: AppColors.white.withValues(alpha: 0.15),
+                      color: AppColors.white,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: AppColors.white.withValues(alpha: 0.25),
-                        width: 1.5,
+                        color: AppColors.white.withValues(alpha: 0.5),
+                        width: 2,
                       ),
                     ),
-                    child: Center(
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Image.asset(
+                        user?.logoAsset ?? 'assets/logos/latam.png',
+                        fit: BoxFit.contain,
                       ),
                     ),
                   ),

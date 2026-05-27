@@ -9,7 +9,7 @@ class PaisModel {
   PaisModel({required this.id, required this.nombre, required this.codigo, required this.activo});
 
   factory PaisModel.fromJson(Map<String, dynamic> json) => PaisModel(
-        id: json['_id']?.toString() ?? '',
+        id: (json['_id'] ?? json['id'])?.toString() ?? '',
         nombre: json['nombre'] as String,
         codigo: json['codigo'] as String,
         activo: json['activo'] as bool? ?? true,

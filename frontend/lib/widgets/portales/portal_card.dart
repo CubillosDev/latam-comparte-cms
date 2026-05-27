@@ -118,17 +118,22 @@ class _PortalHeader extends StatelessWidget {
                   Container(
                     width: 7,
                     height: 7,
-                    decoration: const BoxDecoration(
-                      color: AppColors.statusPublishedText,
+                    decoration: BoxDecoration(
+                      color: portal.pais.activo
+                          ? AppColors.statusPublishedText
+                          : AppColors.textHint,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    '${portal.pais.nombre.toLowerCase().replaceAll(' ', '')}comparte.org',
-                    style: const TextStyle(
-                      color: AppColors.textHint,
+                    portal.pais.activo ? 'Activo' : 'Inactivo',
+                    style: TextStyle(
+                      color: portal.pais.activo
+                          ? AppColors.statusPublishedText
+                          : AppColors.textHint,
                       fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],

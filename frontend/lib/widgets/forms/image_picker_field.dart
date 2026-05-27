@@ -207,6 +207,7 @@ class _CirclePreview extends StatelessWidget {
                   ? ClipOval(
                       child: Image.network(
                         url,
+                        key: ValueKey(url),
                         width: 96,
                         height: 96,
                         fit: BoxFit.cover,
@@ -286,6 +287,7 @@ class _RectPreview extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                       child: Image.network(
                         url,
+                        key: ValueKey(url),
                         width: double.infinity,
                         height: double.infinity,
                         fit: BoxFit.cover,
